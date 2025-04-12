@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SmoothScroller Demo</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/atom-one-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#6366f1',
+                        'primary-hover': '#4f46e5',
+                        'text': '#f8fafc',
+                        'text-secondary': '#94a3b8',
+                        'bg': '#0f172a',
+                        'bg-secondary': '#1e293b',
+                        'border': '#334155',
+                        'success': '#10b981',
+                        'info': '#3b82f6',
+                        'warning': '#f59e0b',
+                        'danger': '#ef4444',
+                    },
+                    animation: {
+                        'pulse-slow': 'pulse 15s infinite alternate',
+                        'bounce-slow': 'bounce 2s infinite',
+                    },
+                    keyframes: {
+                        bounce: {
+                            '0%, 20%, 50%, 80%, 100%': { transform: 'translateY(0) translateX(-50%)' },
+                            '40%': { transform: 'translateY(-20px) translateX(-50%)' },
+                            '60%': { transform: 'translateY(-10px) translateX(-50%)' },
+                        }
+                    }
+                }
+            }
+        };
+    </script>
+    <style>
+        body {
+            background-color: #0f172a;
+            color: #f8fafc;
+        }
+
+        h1 {
+            @apply text-4xl md:text-5xl font-bold mb-6 text-text;
+        }
+
+        h2 {
+            @apply text-3xl font-bold mb-4 text-text;
+        }
+
+        h3 {
+            @apply text-xl font-semibold mb-3 text-text;
+        }
+
+        p {
+            @apply mb-6 text-text-secondary;
+        }
+
+        input[type="range"] {
+            @apply accent-primary;
+        }
+
+        .container-bg {
+            background: radial-gradient(circle at 50% 0%, rgba(99, 102, 241, 0.15), rgba(15, 23, 42, 0) 50%);
+        }
+    </style>
+</head>
+<body class="bg-bg text-text min-h-screen">
+<div id="scrollSmooth" class="relative">
+    <div class="container-bg min-h-screen">
+        <!-- Main Content -->
+        <main class="max-w-6xl mx-auto px-4 md:px-8">
+            <!-- Hero Section -->
+            <section id="home" class="min-h-screen py-24 flex flex-col justify-center relative">
+                <h1 class="text-4xl md:text-5xl font-bold mb-6 leading-tight">Elevate Your Scrolling Experience with SmoothScroller</h1>
+                <p class="text-lg md:text-xl max-w-3xl mb-8">↯ SmoothScroller is an alternative to libraries like GSAP ScrollSmoother, providing similar functionality without the subscription costs.
+                </p>
+                <div class="flex flex-col sm:flex-row gap-4 mb-16">
+                    <button id="demoButton" class="bg-primary hover:bg-primary-hover text-white px-6 py-3 rounded-lg font-medium flex items-center justify-center gap-2 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-primary/20 active:translate-y-0">
+                        Explore Features
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M5 12H19M19 12L12 5M19 12L12 19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </button>
+                    <button id="githubButton" class="bg-transparent border border-border hover:border-primary text-text px-6 py-3 rounded-lg font-medium transition-colors duration-300 hover:bg-white/5 flex items-center justify-center gap-2">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M12 2C6.477 2 2 6.477 2 12c0 4.42 2.865 8.166 6.839 9.489.5.092.682-.217.682-.482 0-.237-.008-.866-.013-1.7-2.782.603-3.369-1.342-3.369-1.342-.454-1.155-1.11-1.462-1.11-1.462-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.578 9.578 0 0112 6.836c.85.004 1.705.115 2.504.337 1.909-1.294 2.747-1.025 2.747-1.025.546 1.377.203 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.743 0 .267.18.579.688.481C19.138 20.161 22 16.418 22 12c0-5.523-4.477-10-10-10z"/>
+                        </svg>
+                        View on GitHub
+                    </button>
+                </div>
+                <div class="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center text-text-secondary text-sm animate-bounce-slow">
+                    Scroll to explore
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="mt-2">
+                        <path d="M12 5v14m-7-7l7 7 7-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </div>
+            </section>
+
+            <!-- Features Section -->
+            <section id="features" class="min-h-screen py-24">
+                <div class="flex items-center mb-4">
+                    <h2 class="text-3xl font-bold">Advanced Features</h2>
+                    <span class="bg-success text-white px-3 py-1 rounded-full text-xs font-semibold ml-3 align-middle">v1.0.0</span>
+                </div>
+                <p class="text-text-secondary mb-12 max-w-3xl">SmoothScroller comes packed with features that make it the ideal choice for modern web applications.</p>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-16">
+                    <!-- Feature Card 1 -->
+                    <div class="bg-bg-secondary border border-border rounded-lg p-6 transition-all duration-300 hover:-translate-y-1 hover:border-primary">
+                        <h3 class="flex items-center gap-2 text-xl font-semibold mb-3">
+                            <span class="text-success">✓</span> Custom Easing Functions
+                        </h3>
+                        <p class="text-text-secondary m-0">Choose from multiple easing presets or provide your own function for perfect scroll animations.</p>
+                    </div>
+
+                    <!-- Feature Card 2 -->
+                    <div class="bg-bg-secondary border border-border rounded-lg p-6 transition-all duration-300 hover:-translate-y-1 hover:border-primary">
+                        <h3 class="flex items-center gap-2 text-xl font-semibold mb-3">
+                            <span class="text-success">✓</span> Performance Optimized
+                        </h3>
+                        <p class="text-text-secondary m-0">Built with requestAnimationFrame and smart debouncing for silky smooth performance.</p>
+                    </div>
+
+                    <!-- Feature Card 3 -->
+                    <div class="bg-bg-secondary border border-border rounded-lg p-6 transition-all duration-300 hover:-translate-y-1 hover:border-primary">
+                        <h3 class="flex items-center gap-2 text-xl font-semibold mb-3">
+                            <span class="text-success">✓</span> Accessibility First
+                        </h3>
+                        <p class="text-text-secondary m-0">Automatically respects reduced motion preferences and provides focus management.</p>
+                    </div>
+
+                    <!-- Feature Card 4 -->
+                    <div class="bg-bg-secondary border border-border rounded-lg p-6 transition-all duration-300 hover:-translate-y-1 hover:border-primary">
+                        <h3 class="flex items-center gap-2 text-xl font-semibold mb-3">
+                            <span class="text-success">✓</span> Touch Device Support
+                        </h3>
+                        <p class="text-text-secondary m-0">Intelligently detects touch devices with optional native fallback for better UX.</p>
+                    </div>
+
+                    <!-- Feature Card 5 -->
+                    <div class="bg-bg-secondary border border-border rounded-lg p-6 transition-all duration-300 hover:-translate-y-1 hover:border-primary">
+                        <h3 class="flex items-center gap-2 text-xl font-semibold mb-3">
+                            <span class="text-success">✓</span> Programmatic API
+                        </h3>
+                        <p class="text-text-secondary m-0">Full control via JavaScript with Promise-based scrollTo methods and event hooks.</p>
+                    </div>
+
+                    <!-- Feature Card 6 -->
+                    <div class="bg-bg-secondary border border-border rounded-lg p-6 transition-all duration-300 hover:-translate-y-1 hover:border-primary">
+                        <h3 class="flex items-center gap-2 text-xl font-semibold mb-3">
+                            <span class="text-success">✓</span> Responsive Design
+                        </h3>
+                        <p class="text-text-secondary m-0">Works flawlessly across all screen sizes with ResizeObserver integration.</p>
+                    </div>
+                </div>
+
+                <!-- Easing Demo -->
+                <div class="bg-bg-secondary border border-border rounded-xl p-6 md:p-8 mb-16 shadow-lg">
+                    <h3 class="text-xl font-semibold mb-3">Interactive Easing Preview</h3>
+                    <p class="text-text-secondary mb-6">Try different easing functions to see how they affect the scrolling behavior:</p>
+
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <button class="easing-demo bg-bg border border-border hover:border-primary rounded-lg px-4 py-3 flex items-center justify-center gap-2 transition-all duration-300 hover:-translate-y-0.5" data-easing="easeInOutCubic">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M4 20L4 4M4 4L20 4M4 4L12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                            </svg>
+                            Cubic
+                        </button>
+                        <button class="easing-demo bg-bg border border-border hover:border-primary rounded-lg px-4 py-3 flex items-center justify-center gap-2 transition-all duration-300 hover:-translate-y-0.5" data-easing="easeOutQuint">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M4 20L4 4M4 4L20 4M4 4L12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                            </svg>
+                            Quint
+                        </button>
+                        <button class="easing-demo bg-bg border border-border hover:border-primary rounded-lg px-4 py-3 flex items-center justify-center gap-2 transition-all duration-300 hover:-translate-y-0.5" data-easing="easeOutBack">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M4 20L4 4M4 4L20 4M4 4L12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                            </svg>
+                            Back
+                        </button>
+                        <button class="easing-demo bg-bg border border-border hover:border-primary rounded-lg px-4 py-3 flex items-center justify-center gap-2 transition-all duration-300 hover:-translate-y-0.5" data-easing="easeOutElastic">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M4 20L4 4M4 4L20 4M4 4L12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                            </svg>
+                            Elastic
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Demo Section -->
+            <section id="demo" class="min-h-screen py-24">
+                <h2 class="text-3xl font-bold mb-4">Live Customization</h2>
+                <p class="text-text-secondary mb-12 max-w-3xl">Adjust these parameters in real-time to see how they affect the scrolling behavior.</p>
+
+                <div class="bg-bg-secondary border border-border rounded-xl p-6 md:p-8 shadow-lg">
+                    <div class="mb-8">
+                        <label class="block text-text-secondary font-medium mb-2" for="smoothness">Smoothness: <span id="smoothnessValue" class="text-text">0.95</span></label>
+                        <input type="range" id="smoothness" min="0.8" max="0.98" step="0.01" value="0.95" class="w-full h-2 bg-bg rounded-lg appearance-none cursor-pointer">
+                    </div>
+
+                    <div class="mb-8">
+                        <label class="block text-text-secondary font-medium mb-2" for="duration">Scroll Duration: <span id="durationValue" class="text-text">1000</span>ms</label>
+                        <input type="range" id="duration" min="500" max="2000" step="100" value="1000" class="w-full h-2 bg-bg rounded-lg appearance-none cursor-pointer">
+                    </div>
+
+                    <button id="resetButton" class="bg-primary hover:bg-primary-hover text-white px-6 py-3 rounded-lg font-medium flex items-center gap-2 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-primary/20 active:translate-y-0">
+                        <!-- this logo is kinda funny, I just let him here. -->
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M14 22C14 22 14.849 21.878 19.5 17.5C20.825 16.268 21.785 14.934 21.949 12.5M21.949 12.5C21.716 9.436 20.083 6.953 14 2C14 2 13.151 2.122 8.5 6.5C7.174 7.732 6.215 9.066 6.051 11.5M6.051 11.5C8.251 18.5 17.75 18.5 21.949 12.5M6.051 11.5C3.75 4.5 14 4.5 14 2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                        Reset Defaults
+                    </button>
+                </div>
+            </section>
+
+            <!-- API Section -->
+            <section id="api" class="min-h-screen py-24">
+                <h2 class="text-3xl font-bold mb-4">API Documentation</h2>
+                <p class="text-text-secondary mb-12 max-w-3xl">Integrate SmoothScroller into your project with just a few lines of code.</p>
+
+                <div class="bg-bg-secondary border border-border rounded-xl p-6 md:p-8 shadow-lg mb-8">
+                    <h3 class="text-xl font-semibold mb-4">Basic Initialization</h3>
+                    <pre class="rounded-lg overflow-x-auto"><code class="language-javascript">// Import the library (ES Module)
+import SmoothScroller from 'smooth-scroller';
+
+// Initialize with default options
+const scroller = new SmoothScroller({
+    element: '#content',      // Element to apply smooth scrolling
+    smoothness: 0.95,         // Smoothness factor (0.8-0.98)
+    scrollToDuration: 1000,   // Duration of programmatic scrolls
+    scrollToEasing: 'easeInOutCubic' // Default easing function
+});</code></pre>
+                </div>
+
+                <div class="bg-bg-secondary border border-border rounded-xl p-6 md:p-8 shadow-lg">
+                    <h3 class="text-xl font-semibold mb-4">Programmatic Control</h3>
+                    <pre class="rounded-lg overflow-x-auto"><code class="language-javascript">// Scroll to specific position
+scroller.scrollTo(500); // Scroll to 500px from top
+
+// Scroll to element
+scroller.scrollToElement('#section-2', {
+    offset: 100,       // Additional offset from top
+    duration: 1500,    // Custom duration for this scroll
+    easing: 'easeOutBack' // Custom easing for this scroll
+}).then(() => {
+    // Callback when scroll completes
+    console.log('Scroll finished!');
+});
+
+// Get current scroll position
+const position = scroller.getScrollPosition();
+
+// Toggle smooth scrolling
+scroller.toggle(true); // Enable/disable smooth scrolling</code></pre>
+                </div>
+            </section>
+
+            <!-- Config Section -->
+            <section id="config" class="min-h-screen py-24">
+                <h2 class="text-3xl font-bold mb-4">Configuration Options</h2>
+                <p class="text-text-secondary mb-12 max-w-3xl">Customize SmoothScroller to perfectly match your application's needs.</p>
+
+                <div class="bg-bg-secondary border border-border rounded-xl p-6 md:p-8 shadow-lg mb-8">
+                        <pre class="rounded-lg overflow-x-auto"><code class="language-javascript">const scroller = new SmoothScroller({
+    // Required: Element to apply smooth scrolling to
+    element: '#scrollContainer',
+
+    // Smoothness configuration (0.8-0.98 recommended)
+    smoothness: 0.95,       // How smooth the scrolling feels
+    minMovement: 0.5,       // Minimum pixels to move per frame
+    maxDeltaTime: 2,        // Maximum time delta multiplier
+
+    // Scroll-to behavior
+    scrollToDuration: 1000, // Duration of programmatic scrolls
+    scrollToEasing: 'easeInOutCubic', // Default easing function
+    autoScrollOffset: 0,    // Automatic offset for scroll-to elements
+
+    // Device handling
+    useNativeForTouch: true, // Fallback to native scroll on touch devices
+    respectReducedMotion: true, // Respect prefers-reduced-motion
+
+    // Debugging
+    debug: false,           // Enable debug logging
+
+    // Event hooks
+    onInit: () => {},       // Called after initialization
+    onDestroy: () => {},    // Called when instance is destroyed
+    onScrollStart: () => {}, // Called when scroll starts
+    onScrollEnd: () => {}   // Called when scroll ends
+});</code></pre>
+                </div>
+
+                <div class="bg-bg-secondary border border-border rounded-xl p-6 md:p-8 shadow-lg">
+                    <h3 class="text-xl font-semibold mb-4">Available Easing Functions</h3>
+                    <pre class="rounded-lg overflow-x-auto"><code class="language-javascript">// Built-in easing functions:
+'easeInOutCubic' // Default - smooth acceleration/deceleration
+'easeOutQuint'   // Stronger deceleration
+'easeOutBack'    // Slight overshoot at the end
+'easeOutElastic' // Elastic bounce effect
+'easeInOutQuad'  // Subtle quadratic easing
+'easeOutExpo'    // Exponential deceleration
+
+// You can also provide custom easing functions:
+function customEasing(t) {
+    return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+}
+
+new SmoothScroller({
+    scrollToEasing: customEasing
+});</code></pre>
+                </div>
+            </section>
+        </main>
+    </div>
+</div>
+
+<!-- Floating Controls -->
+<div class="fixed bottom-8 right-8 flex flex-col gap-4 z-50">
+    <button class="scroll-to-top bg-primary hover:bg-primary-hover text-white w-12 h-12 rounded-full flex items-center justify-center transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-primary/20 active:translate-y-0" aria-label="Scroll to top">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 19V5M12 5L5 12M12 5L19 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+    </button>
+</div>
+
+<script src="smooth-scroller.js"></script>
+<script src="main.js"></script>
+</body>
+</html>
