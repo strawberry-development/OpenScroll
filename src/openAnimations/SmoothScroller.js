@@ -35,7 +35,7 @@ class SmoothScroller {
 
         // Configuration with defaults
         this.config = {
-            smoothness: this._clamp(options.smoothness ?? 0.95, 0.5, 0.99),
+            smoothness: this._clamp(options.smoothness ?? 0.94, 0.5, 0.99),
             minMovement: options.minMovement ?? 0.5,
             maxDeltaTime: options.maxDeltaTime ?? 2,
             debug: options.debug ?? false,
@@ -358,7 +358,7 @@ class SmoothScroller {
      * @param {number} [options.duration] - Duration of scroll animation in ms
      * @param {string} [options.easing] - Easing function name
      * @param {number} [options.offset] - Offset from the element in pixels
-     * @param {boolean} [options.immediate=false] - Whether to cancel current animations
+     * @param {boolean} [options.immediate=false] - Whether to cancel current openAnimations
      * @param {Function} [options.onComplete] - Callback when animation completes
      * @returns {Promise} A promise that resolves when the animation completes
      */
@@ -411,7 +411,7 @@ class SmoothScroller {
             // Add to queue or start immediately
             if (this.isAnimating) {
                 if (options.immediate) {
-                    // Clear current animations and start this one immediately
+                    // Clear current openAnimations and start this one immediately
                     this.animations = [];
                     this.isAnimating = false;
                     this.currentAnimation = null;
@@ -631,3 +631,5 @@ class SmoothScroller {
         this._log("Smooth scroll initialized with these settings:", this.config);
     }
 }
+
+window.SmoothScroller = SmoothScroller;
