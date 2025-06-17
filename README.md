@@ -14,27 +14,27 @@ Allow to have a smooth scrolling effect.
 <!DOCTYPE html>
 <html>
 <head>
-    <script src="path/to/OpenScroll.js"></script>
+    <script src="path/to/openscroll.core.js"></script>
     <!--Imported needed animataion -->
-    <script src="path/to/openAnimations/SmoothScroller.js"></script>
+    <script src="path/to/plugins/SmoothScroller.js"></script>
 </head>
 <body>
-    <div id="scrollSmooth">
-        <!-- Your content here -->
-    </div>
-    
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const openScroll = new OpenScroll();
-            
-            // Start smooth scrolling
-            openScroll.start(SmoothScroller, {
-                element: '#scrollSmooth',
-                smoothness: 0.95,
-                speed: 1.2
-            });
+<div id="scrollSmooth">
+    <!-- Your content here -->
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const openScroll = new OpenScroll();
+
+        // Start smooth scrolling
+        openScroll.start(OpenscrollSmoothscroller, {
+            element: '#scrollSmooth',
+            smoothness: 0.95,
+            speed: 1.2
         });
-    </script>
+    });
+</script>
 </body>
 </html>
 ```
