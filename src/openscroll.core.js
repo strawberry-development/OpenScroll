@@ -1,8 +1,10 @@
+/**
+ * OpenScroll is the main class that is used to launch other animations; it isn’t meant to be very complex at all.
+ */
+
 class OpenScroll {
-    constructor(options = {}) {
-        this.options = {
-            ...options
-        };
+    constructor() {
+        // Use to track the different instance
         this.instances = new Map();
     }
 
@@ -29,8 +31,7 @@ class OpenScroll {
             }
 
             // Create instance with merged options
-            const mergedOptions = { ...this.options, ...options };
-            const instance = new AnimationConstructor(mergedOptions);
+            const instance = new AnimationConstructor(options);
 
             // Store the instance for later reference
             const className = AnimationConstructor.name || 'UnknownAnimation';
