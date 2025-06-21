@@ -1,6 +1,6 @@
 /*
  * OpenScroll Distribution Build
- * Generated on: -06-2025 17:13
+ * Generated on: -06-2025 17:31
  * Build script: build_dist.bat
  *
  * This file combines all source and plugin files into a single distribution.
@@ -131,112 +131,184 @@ class Parallax {
             updateFrequency: 10,
             useIntersectionObserver: true,
             rootMargin: '50px',
-            maxTransform: 500, // Maximum transform distance to prevent infinite scrolling
-            containTransforms: true, // Keep transforms within reasonable bounds
+            maxTransform: 500,
+            containTransforms: true,
+            enableRAF: true, // Allow disabling RAF for testing
+            enableGPUAcceleration: true,
             ...options
         };
 
-        this.elements = [];
-        this.isRunning = false;
-        this.rafId = null;
-        this.lastScrollY = 0;
-        this.lastScrollX = 0;
-        this.currentScrollY = 0;
-        this.currentScrollX = 0;
-        this.frameCount = 0;
-        this.observer = null;
+        // State management
+        this.state = {
+            isRunning: false,
+            isScrolling: false,
+            frameCount: 0,
+            lastScrollY: 0,
+            lastScrollX: 0,
+            currentScrollY: 0,
+            currentScrollX: 0
+        };
+
+        // Collections and references
+        this.elements = new Map(); // Use Map for better performance
         this.visibleElements = new Set();
-        this.isScrolling = false;
+        this.rafId = null;
+        this.observer = null;
+        this.mutationObserver = null;
+        this.resizeObserver = null;
+
+        // Timers
         this.scrollTimeout = null;
+        this.debounceTimers = new Map();
+
+        // Bind methods once
+        this.boundMethods = {
+            handleScroll: this.throttle(this.handleScroll.bind(this), 16),
+            handleResize: this.debounce(this.handleResize.bind(this), 250),
+            handleLoad: this.handleLoad.bind(this),
+            animate: this.animate.bind(this)
+        };
 
         this.init();
     }
 
     init() {
-        this.setupElements();
-        this.bindEvents();
-        this.setupIntersectionObserver();
-        this.start();
+        try {
+            this.setupElements();
+            this.bindEvents();
+            this.setupObservers();
+            this.start();
+        } catch (error) {
+            this.handleError('Initialization failed', error);
+        }
     }
 
     setupElements() {
         const nodeList = document.querySelectorAll(this.options.selector);
-        this.elements = Array.from(nodeList).map(el => {
-            const speed = parseFloat(el.dataset.parallaxSpeed) || this.options.speed;
-            const direction = el.dataset.parallaxDirection || this.options.direction;
-            const offset = parseFloat(el.dataset.parallaxOffset) || this.options.offset;
 
-            // Ensure elements are properly positioned for transforms
-            this.prepareElement(el);
+        if (nodeList.length === 0) {
+            if (this.options.debug) {
+                console.warn(`No elements found with selector: ${this.options.selector}`);
+            }
+            return;
+        }
 
-            const item = {
-                element: el,
-                speed: Math.max(-2, Math.min(2, speed)), // Clamp speed to reasonable range
-                direction,
-                offset,
-                initialTransform: this.getInitialTransform(el),
-                rect: null,
-                isVisible: false,
-                lastUpdate: 0,
-                container: this.getContainer(el),
-                lastTransform: { x: 0, y: 0 }
-            };
+        // Clear existing elements
+        this.elements.clear();
 
-            return item;
+        Array.from(nodeList).forEach((el, index) => {
+            try {
+                const item = this.createParallaxItem(el, index);
+                this.elements.set(el, item);
+            } catch (error) {
+                this.handleError(`Failed to setup element ${index}`, error);
+            }
         });
 
         this.updateElementRects();
 
         if (this.options.debug) {
-            console.log(`Parallax initialized with ${this.elements.length} elements`);
+            console.log(`Parallax initialized with ${this.elements.size} elements`);
         }
+    }
+
+    createParallaxItem(element, index) {
+        const speed = this.parseFloat(element.dataset.parallaxSpeed, this.options.speed);
+        const direction = element.dataset.parallaxDirection || this.options.direction;
+        const offset = this.parseFloat(element.dataset.parallaxOffset, this.options.offset);
+
+        // Validate and clamp speed
+        const clampedSpeed = Math.max(-2, Math.min(2, speed));
+
+        if (speed !== clampedSpeed && this.options.debug) {
+            console.warn(`Element ${index}: Speed clamped from ${speed} to ${clampedSpeed}`);
+        }
+
+        this.prepareElement(element);
+
+        return {
+            element,
+            speed: clampedSpeed,
+            direction,
+            offset,
+            initialTransform: this.getInitialTransform(element),
+            rect: null,
+            isVisible: false,
+            lastUpdate: 0,
+            container: this.getContainer(element),
+            lastTransform: { x: 0, y: 0 },
+            id: `parallax-${index}-${Date.now()}`
+        };
+    }
+
+    parseFloat(value, fallback) {
+        const parsed = parseFloat(value);
+        return isNaN(parsed) ? fallback : parsed;
     }
 
     prepareElement(element) {
         const computedStyle = window.getComputedStyle(element);
+        const styles = {};
 
-        // Ensure element won't affect document flow with transforms
+        // Only set styles if they need to be changed
         if (computedStyle.position === 'static') {
-            element.style.position = 'relative';
+            styles.position = 'relative';
         }
 
-        // Prevent transforms from affecting layout
-        if (!element.style.willChange) {
-            element.style.willChange = 'transform';
+        if (!element.style.willChange && this.options.enableGPUAcceleration) {
+            styles.willChange = 'transform';
         }
 
-        // Ensure element has a stacking context
         if (computedStyle.zIndex === 'auto') {
-            element.style.zIndex = '0';
+            styles.zIndex = '0';
         }
+
+        // Apply styles in batch to minimize reflows
+        Object.assign(element.style, styles);
     }
 
     getContainer(element) {
         let parent = element.parentElement;
+
         while (parent && parent !== document.body) {
             const style = window.getComputedStyle(parent);
-            if (style.overflow !== 'visible' || style.position === 'relative' || style.position === 'absolute') {
+            if (style.overflow !== 'visible' ||
+                ['relative', 'absolute', 'fixed'].includes(style.position)) {
                 return parent;
             }
             parent = parent.parentElement;
         }
+
         return document.body;
     }
 
     getInitialTransform(element) {
         const transform = window.getComputedStyle(element).transform;
-        if (transform === 'none') return { x: 0, y: 0, z: 0 };
 
-        const matrix = transform.match(/matrix.*\((.+)\)/);
-        if (matrix) {
-            const values = matrix[1].split(', ');
-            return {
-                x: parseFloat(values[4]) || 0,
-                y: parseFloat(values[5]) || 0,
-                z: 0
-            };
+        if (transform === 'none') {
+            return { x: 0, y: 0, z: 0 };
         }
+
+        // Handle both matrix and matrix3d
+        const matrixMatch = transform.match(/matrix(?:3d)?\(([^)]+)\)/);
+
+        if (matrixMatch) {
+            const values = matrixMatch[1].split(',').map(v => parseFloat(v.trim()));
+
+            if (values.length === 6) { // 2D matrix
+                return { x: values[4] || 0, y: values[5] || 0, z: 0 };
+            } else if (values.length === 16) { // 3D matrix
+                return { x: values[12] || 0, y: values[13] || 0, z: values[14] || 0 };
+            }
+        }
+
         return { x: 0, y: 0, z: 0 };
+    }
+
+    setupObservers() {
+        this.setupIntersectionObserver();
+        this.setupResizeObserver();
+        this.setupMutationObserver();
     }
 
     setupIntersectionObserver() {
@@ -255,16 +327,15 @@ class Parallax {
 
         this.observer = new IntersectionObserver((entries) => {
             entries.forEach(entry => {
-                const element = entry.target;
                 if (entry.isIntersecting) {
-                    this.visibleElements.add(element);
+                    this.visibleElements.add(entry.target);
                 } else {
-                    this.visibleElements.delete(element);
+                    this.visibleElements.delete(entry.target);
                 }
             });
         }, observerOptions);
 
-        this.elements.forEach(item => {
+        this.elements.forEach((item) => {
             this.observer.observe(item.element);
         });
 
@@ -273,38 +344,52 @@ class Parallax {
         }
     }
 
-    bindEvents() {
-        this.handleScroll = this.throttle(this.handleScroll.bind(this), 16); // ~60fps
-        this.handleResize = this.debounce(this.handleResize.bind(this), 250);
-        this.handleLoad = this.handleLoad.bind(this);
+    setupResizeObserver() {
+        if (!window.ResizeObserver) return;
 
-        window.addEventListener('scroll', this.handleScroll, { passive: true });
-        window.addEventListener('resize', this.handleResize, { passive: true });
-        window.addEventListener('load', this.handleLoad, { passive: true });
-
-        // Reduced mutation observer scope to prevent performance issues
-        if (window.MutationObserver) {
-            this.mutationObserver = new MutationObserver(this.debounce(() => {
+        this.resizeObserver = new ResizeObserver(
+            this.debounce(() => {
                 this.updateElementRects();
-            }, 500));
+            }, 150)
+        );
 
-            this.mutationObserver.observe(document.body, {
-                childList: true,
-                subtree: false, // Only direct children
-                attributes: false // Don't watch attributes
-            });
-        }
+        this.elements.forEach((item) => {
+            this.resizeObserver.observe(item.element);
+        });
+    }
+
+    setupMutationObserver() {
+        if (!window.MutationObserver) return;
+
+        this.mutationObserver = new MutationObserver(
+            this.debounce(() => {
+                this.updateElementRects();
+            }, 500)
+        );
+
+        this.mutationObserver.observe(document.body, {
+            childList: true,
+            subtree: false,
+            attributes: false
+        });
+    }
+
+    bindEvents() {
+        const options = { passive: true };
+
+        window.addEventListener('scroll', this.boundMethods.handleScroll, options);
+        window.addEventListener('resize', this.boundMethods.handleResize, options);
+        window.addEventListener('load', this.boundMethods.handleLoad, options);
     }
 
     handleScroll() {
-        this.currentScrollY = window.pageYOffset;
-        this.currentScrollX = window.pageXOffset;
+        this.state.currentScrollY = window.pageYOffset;
+        this.state.currentScrollX = window.pageXOffset;
 
-        // Prevent scroll feedback loops
-        this.isScrolling = true;
+        this.state.isScrolling = true;
         clearTimeout(this.scrollTimeout);
         this.scrollTimeout = setTimeout(() => {
-            this.isScrolling = false;
+            this.state.isScrolling = false;
         }, 100);
     }
 
@@ -313,17 +398,31 @@ class Parallax {
     }
 
     handleLoad() {
-        setTimeout(() => this.updateElementRects(), 100);
+        // Use shorter timeout and ensure elements exist
+        setTimeout(() => {
+            if (this.elements.size > 0) {
+                this.updateElementRects();
+            }
+        }, 50);
     }
 
     updateElementRects() {
-        this.elements.forEach(item => {
-            // Get rect without current transform to avoid cumulative errors
-            const currentTransform = item.element.style.transform;
-            item.element.style.transform = 'none';
-            item.rect = item.element.getBoundingClientRect();
-            item.element.style.transform = currentTransform;
-            item.lastUpdate = Date.now();
+        const now = Date.now();
+
+        this.elements.forEach((item) => {
+            try {
+                // Temporarily remove transform to get accurate measurements
+                const currentTransform = item.element.style.transform;
+                item.element.style.transform = 'none';
+
+                item.rect = item.element.getBoundingClientRect();
+                item.lastUpdate = now;
+
+                // Restore transform
+                item.element.style.transform = currentTransform;
+            } catch (error) {
+                this.handleError(`Failed to update rect for element ${item.id}`, error);
+            }
         });
 
         if (this.options.debug) {
@@ -336,26 +435,25 @@ class Parallax {
             return this.visibleElements.has(item.element);
         }
 
-        const rect = item.rect || item.element.getBoundingClientRect();
+        if (!item.rect) {
+            item.rect = item.element.getBoundingClientRect();
+        }
+
         const windowHeight = window.innerHeight;
         const threshold = this.options.threshold;
 
         return (
-            rect.bottom >= -threshold &&
-            rect.top <= windowHeight + threshold
+            item.rect.bottom >= -threshold &&
+            item.rect.top <= windowHeight + threshold
         );
     }
 
     calculateTransform(item) {
         const { speed, direction, offset, initialTransform } = item;
+        const { currentScrollY, currentScrollX } = this.state;
 
-        // Use actual scroll values instead of smoothed to prevent feedback loops
-        const scrollY = this.currentScrollY;
-        const scrollX = this.currentScrollX;
-
-        // Calculate base transform
-        const scrollDiffY = scrollY * speed;
-        const scrollDiffX = scrollX * speed;
+        const scrollDiffY = currentScrollY * speed;
+        const scrollDiffX = currentScrollX * speed;
 
         let transformX = initialTransform.x;
         let transformY = initialTransform.y;
@@ -371,60 +469,82 @@ class Parallax {
                 transformY = initialTransform.y + scrollDiffY + offset;
                 transformX = initialTransform.x + scrollDiffX + offset;
                 break;
+            default:
+                if (this.options.debug) {
+                    console.warn(`Unknown direction: ${direction} for element ${item.id}`);
+                }
+                break;
         }
 
-        // Constrain transforms to prevent infinite scrolling
+        // Constrain transforms
         if (this.options.containTransforms) {
-            const maxTransform = this.options.maxTransform;
-            transformX = Math.max(-maxTransform, Math.min(maxTransform, transformX));
-            transformY = Math.max(-maxTransform, Math.min(maxTransform, transformY));
+            const max = this.options.maxTransform;
+            transformX = Math.max(-max, Math.min(max, transformX));
+            transformY = Math.max(-max, Math.min(max, transformY));
         }
 
         return { x: transformX, y: transformY };
     }
 
     animate() {
-        if (!this.isRunning) return;
+        if (!this.state.isRunning) return;
 
-        this.frameCount++;
+        this.state.frameCount++;
 
-        // Update rects less frequently and only when not scrolling
-        if (!this.observer && !this.isScrolling && this.frameCount % this.options.updateFrequency === 0) {
+        // Update rects periodically when not scrolling
+        if (!this.observer &&
+            !this.state.isScrolling &&
+            this.state.frameCount % this.options.updateFrequency === 0) {
             this.updateElementRects();
         }
 
-        this.elements.forEach(item => {
-            const isVisible = this.isElementVisible(item);
+        // Batch DOM updates
+        const updates = [];
 
-            if (isVisible) {
-                const transform = this.calculateTransform(item);
+        this.elements.forEach((item) => {
+            if (!this.isElementVisible(item)) return;
 
-                // Only update if transform actually changed significantly
-                const deltaX = Math.abs(transform.x - item.lastTransform.x);
-                const deltaY = Math.abs(transform.y - item.lastTransform.y);
+            const transform = this.calculateTransform(item);
+            const deltaX = Math.abs(transform.x - item.lastTransform.x);
+            const deltaY = Math.abs(transform.y - item.lastTransform.y);
 
-                if (deltaX > 0.1 || deltaY > 0.1) {
-                    const transformString = `translate3d(${transform.x.toFixed(2)}px, ${transform.y.toFixed(2)}px, 0px)`;
-                    item.element.style.transform = transformString;
-                    item.lastTransform = transform;
-                }
+            // Only update if change is significant
+            if (deltaX > 0.1 || deltaY > 0.1) {
+                updates.push({
+                    element: item.element,
+                    transform,
+                    item
+                });
             }
         });
 
-        this.rafId = requestAnimationFrame(() => this.animate());
+        // Apply all updates in batch
+        updates.forEach(({ element, transform, item }) => {
+            const transformString = this.options.enableGPUAcceleration
+                ? `translate3d(${transform.x.toFixed(2)}px, ${transform.y.toFixed(2)}px, 0px)`
+                : `translate(${transform.x.toFixed(2)}px, ${transform.y.toFixed(2)}px)`;
+
+            element.style.transform = transformString;
+            item.lastTransform = transform;
+        });
+
+        if (this.options.enableRAF) {
+            this.rafId = requestAnimationFrame(this.boundMethods.animate);
+        }
     }
 
     start() {
-        if (this.isRunning) return;
+        if (this.state.isRunning) return;
 
-        this.isRunning = true;
-        // Initialize scroll values
-        this.currentScrollY = window.pageYOffset;
-        this.currentScrollX = window.pageXOffset;
-        this.lastScrollY = this.currentScrollY;
-        this.lastScrollX = this.currentScrollX;
+        this.state.isRunning = true;
+        this.state.currentScrollY = window.pageYOffset;
+        this.state.currentScrollX = window.pageXOffset;
+        this.state.lastScrollY = this.state.currentScrollY;
+        this.state.lastScrollX = this.state.currentScrollX;
 
-        this.animate();
+        if (this.options.enableRAF) {
+            this.animate();
+        }
 
         if (this.options.debug) {
             console.log('Parallax animation started');
@@ -432,7 +552,7 @@ class Parallax {
     }
 
     stop() {
-        this.isRunning = false;
+        this.state.isRunning = false;
 
         if (this.rafId) {
             cancelAnimationFrame(this.rafId);
@@ -447,37 +567,31 @@ class Parallax {
     destroy() {
         this.stop();
 
-        // Clear timeouts
+        // Clear all timers
         clearTimeout(this.scrollTimeout);
-        clearTimeout(this.debounceTimer);
+        this.debounceTimers.forEach((timer) => clearTimeout(timer));
+        this.debounceTimers.clear();
 
         // Remove event listeners
-        window.removeEventListener('scroll', this.handleScroll);
-        window.removeEventListener('resize', this.handleResize);
-        window.removeEventListener('load', this.handleLoad);
+        window.removeEventListener('scroll', this.boundMethods.handleScroll);
+        window.removeEventListener('resize', this.boundMethods.handleResize);
+        window.removeEventListener('load', this.boundMethods.handleLoad);
 
-        // Disconnect observers
-        if (this.observer) {
-            this.observer.disconnect();
-            this.observer = null;
-        }
+        // Disconnect all observers
+        [this.observer, this.mutationObserver, this.resizeObserver]
+            .forEach(observer => {
+                if (observer) {
+                    observer.disconnect();
+                }
+            });
 
-        if (this.mutationObserver) {
-            this.mutationObserver.disconnect();
-            this.mutationObserver = null;
-        }
-
-        // Reset all element styles
-        this.elements.forEach(item => {
-            const { initialTransform } = item;
-            item.element.style.transform =
-                `translate3d(${initialTransform.x}px, ${initialTransform.y}px, ${initialTransform.z}px)`;
-            item.element.style.willChange = 'auto';
-            item.element.style.position = '';
-            item.element.style.zIndex = '';
+        // Reset element styles
+        this.elements.forEach((item) => {
+            this.resetElementStyles(item);
         });
 
-        this.elements = [];
+        // Clear collections
+        this.elements.clear();
         this.visibleElements.clear();
 
         if (this.options.debug) {
@@ -485,17 +599,38 @@ class Parallax {
         }
     }
 
-    // Utility methods
-    debounce(func, wait) {
+    resetElementStyles(item) {
+        const { element, initialTransform } = item;
+        const transformString = this.options.enableGPUAcceleration
+            ? `translate3d(${initialTransform.x}px, ${initialTransform.y}px, ${initialTransform.z}px)`
+            : `translate(${initialTransform.x}px, ${initialTransform.y}px)`;
+
+        element.style.transform = transformString;
+        element.style.willChange = 'auto';
+        element.style.position = '';
+        element.style.zIndex = '';
+    }
+
+    // Utility methods with improved implementations
+    debounce(func, wait, key = 'default') {
         return (...args) => {
-            clearTimeout(this.debounceTimer);
-            this.debounceTimer = setTimeout(() => func.apply(this, args), wait);
+            const existingTimer = this.debounceTimers.get(key);
+            if (existingTimer) {
+                clearTimeout(existingTimer);
+            }
+
+            const timer = setTimeout(() => {
+                func.apply(this, args);
+                this.debounceTimers.delete(key);
+            }, wait);
+
+            this.debounceTimers.set(key, timer);
         };
     }
 
     throttle(func, limit) {
         let inThrottle;
-        return function(...args) {
+        return (...args) => {
             if (!inThrottle) {
                 func.apply(this, args);
                 inThrottle = true;
@@ -504,72 +639,72 @@ class Parallax {
         };
     }
 
+    // Public API methods
     addElement(element, options = {}) {
-        const speed = Math.max(-2, Math.min(2, options.speed || this.options.speed));
-        const direction = options.direction || this.options.direction;
-        const offset = options.offset || this.options.offset;
-
-        this.prepareElement(element);
-
-        const item = {
-            element,
-            speed,
-            direction,
-            offset,
-            initialTransform: this.getInitialTransform(element),
-            rect: element.getBoundingClientRect(),
-            isVisible: false,
-            lastUpdate: Date.now(),
-            container: this.getContainer(element),
-            lastTransform: { x: 0, y: 0 }
-        };
-
-        this.elements.push(item);
-
-        if (this.observer) {
-            this.observer.observe(element);
+        if (this.elements.has(element)) {
+            if (this.options.debug) {
+                console.warn('Element already exists in parallax');
+            }
+            return this.elements.get(element);
         }
 
-        if (this.options.debug) {
-            console.log('Element added to parallax');
-        }
+        try {
+            const item = this.createParallaxItem(element, this.elements.size);
+            this.elements.set(element, item);
 
-        return item;
+            if (this.observer) {
+                this.observer.observe(element);
+            }
+
+            if (this.resizeObserver) {
+                this.resizeObserver.observe(element);
+            }
+
+            if (this.options.debug) {
+                console.log(`Element added to parallax: ${item.id}`);
+            }
+
+            return item;
+        } catch (error) {
+            this.handleError('Failed to add element', error);
+            return null;
+        }
     }
 
     removeElement(element) {
-        const index = this.elements.findIndex(item => item.element === element);
-        if (index > -1) {
+        const item = this.elements.get(element);
+        if (!item) return false;
+
+        try {
+            // Disconnect observers
             if (this.observer) {
                 this.observer.unobserve(element);
             }
+            if (this.resizeObserver) {
+                this.resizeObserver.unobserve(element);
+            }
 
             this.visibleElements.delete(element);
-
-            const item = this.elements[index];
-            const { initialTransform } = item;
-            element.style.transform =
-                `translate3d(${initialTransform.x}px, ${initialTransform.y}px, ${initialTransform.z}px)`;
-            element.style.willChange = 'auto';
-            element.style.position = '';
-            element.style.zIndex = '';
-
-            this.elements.splice(index, 1);
+            this.resetElementStyles(item);
+            this.elements.delete(element);
 
             if (this.options.debug) {
-                console.log('Element removed from parallax');
+                console.log(`Element removed from parallax: ${item.id}`);
             }
 
             return true;
+        } catch (error) {
+            this.handleError('Failed to remove element', error);
+            return false;
         }
-        return false;
     }
 
     updateOptions(newOptions) {
-        const oldUseIntersectionObserver = this.options.useIntersectionObserver;
+        const oldOptions = { ...this.options };
         this.options = { ...this.options, ...newOptions };
 
-        if (oldUseIntersectionObserver !== this.options.useIntersectionObserver) {
+        // Handle observer changes
+        if (oldOptions.useIntersectionObserver !== this.options.useIntersectionObserver) {
             if (this.observer) {
                 this.observer.disconnect();
                 this.observer = null;
@@ -578,33 +713,75 @@ class Parallax {
             this.setupIntersectionObserver();
         }
 
-        this.setupElements();
+        // Re-setup elements if significant options changed
+        const significantOptions = ['selector', 'speed', 'direction', 'offset'];
+        const hasSignificantChanges = significantOptions.some(
+            key => oldOptions[key] !== this.options[key]
+        );
+
+        if (hasSignificantChanges) {
+            this.setupElements();
+        }
 
         if (this.options.debug) {
-            console.log('Parallax options updated');
+            console.log('Parallax options updated', { oldOptions, newOptions });
         }
     }
 
+    // Performance and debugging
     getPerformanceStats() {
         return {
-            elementsCount: this.elements.length,
+            elementsCount: this.elements.size,
             visibleElementsCount: this.visibleElements.size,
-            frameCount: this.frameCount,
-            isRunning: this.isRunning,
+            frameCount: this.state.frameCount,
+            isRunning: this.state.isRunning,
+            isScrolling: this.state.isScrolling,
             useIntersectionObserver: !!this.observer,
-            isScrolling: this.isScrolling
+            memoryUsage: this.getMemoryUsage()
         };
+    }
+
+    getMemoryUsage() {
+        if (performance.memory) {
+            return {
+                usedJSHeapSize: performance.memory.usedJSHeapSize,
+                totalJSHeapSize: performance.memory.totalJSHeapSize,
+                jsHeapSizeLimit: performance.memory.jsHeapSizeLimit
+            };
+        }
+        return null;
+    }
+
+    handleError(message, error) {
+        if (this.options.debug) {
+            console.error(`Parallax Error: ${message}`, error);
+        }
+
+        // Emit custom event for error handling
+        window.dispatchEvent(new CustomEvent('parallax:error', {
+            detail: { message, error }
+        }));
+    }
+
+    // Static factory method
+    static create(options = {}) {
+        return new Parallax(options);
     }
 }
 
-// Auto-initialize with safer defaults
+// Auto-initialization with improved error handling
 document.addEventListener('DOMContentLoaded', () => {
-    if (document.querySelector('[data-parallax]')) {
-        window.parallaxInstance = new Parallax({
-            containTransforms: true,
-            maxTransform: 300,
-            smoothing: 0.05 // Reduced smoothing to prevent feedback loops
-        });
+    try {
+        if (document.querySelector('[data-parallax]')) {
+            window.parallaxInstance = Parallax.create({
+                containTransforms: true,
+                maxTransform: 300,
+                smoothing: 0.05,
+                debug: false // Set to true for debugging
+            });
+        }
+    } catch (error) {
+        console.error('Failed to initialize parallax:', error);
     }
 });
 
