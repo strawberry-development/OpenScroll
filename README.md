@@ -1,15 +1,12 @@
 # OpenScroll
 OpenScroll is a free alternative to premium animation libraries like GSAP.
 
-##  Quick Start
+##  Note
 
-##  Feature
+This project is currently in development.
 
-### SmoothScroller
-Allow to have a smooth scrolling effect.
-
-### Example
-Allow to have a smooth scrolling effect.
+## Example
+Find example [here](https://github.com/strawberry-development/OpenScroll/tree/main/examples)
 
 ## Basic Usage
 
