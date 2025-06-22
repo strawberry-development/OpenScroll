@@ -1,4 +1,8 @@
-class OpenscrollSmoothscroller {
+/**
+ * Smooth Scroll
+ * V1.0.0
+ */
+class Smoothscroller {
     /**
      * Constructor for the SmoothScroller class
      * @param {Object} options - Configuration options
@@ -632,4 +636,4 @@ class OpenscrollSmoothscroller {
     }
 }
 
-window.SmoothScroller = OpenscrollSmoothscroller;
+window.SmoothScroller = Smoothscroller;

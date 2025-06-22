@@ -1,6 +1,6 @@
 /*
  * OpenScroll Distribution Build
- * Generated on: -06-2025 17:31
+ * Generated on: -06-2025 17:10
  * Build script: build_dist.bat
  *
  * This file combines all source and plugin files into a single distribution.
@@ -118,6 +118,10 @@ class OpenScroll {
  
  
 // === Source: openscroll.parallax.js === 
+/**
+ * Parallax effect
+ * V1.0.0
+ */
 class Parallax {
     constructor(options = {}) {
         this.options = {
@@ -788,7 +792,11 @@ document.addEventListener('DOMContentLoaded', () => {
 window.Parallax = Parallax; 
  
 // === Source: openscroll.smoothscroller.js === 
-class OpenscrollSmoothscroller {
+/**
+ * Smooth Scroll
+ * V1.0.0
+ */
+class Smoothscroller {
     /**
      * Constructor for the SmoothScroller class
      * @param {Object} options - Configuration options
@@ -1422,4 +1430,7 @@ class OpenscrollSmoothscroller {
     }
 }
 
-window.SmoothScroller = OpenscrollSmoothscroller; 
+window.SmoothScroller = Smoothscroller; 
+ 
+// === Source: Plugins.js === 
+ 

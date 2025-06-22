@@ -1,0 +1,72 @@
+* {
+    padding: 0;
+    margin: 0;
+    box-sizing: border-box;
+}
+
+body {
+    background-color: #111;
+    font-family: "Signika Negative", sans-serif, Arial;
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden;
+    color: white;
+}
+
+.background {
+    background-image: linear-gradient(rgba(255, 255, 255, .07) 2px, transparent 2px),
+    linear-gradient(90deg, rgba(255, 255, 255, .07) 2px, transparent 2px),
+    linear-gradient(rgba(255, 255, 255, .06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, .06) 1px, transparent 1px);
+    background-size: 100px 100px, 100px 100px, 20px 20px, 20px 20px;
+    background-position: -2px -2px, -2px -2px, -1px -1px, -1px -1px;
+
+    height: 10000px;
+}
+
+.content {
+    padding: 50px 20px;
+    margin: 0 auto;
+    max-width: 800px;
+}
+
+h1 {
+    font-size: 3rem;
+    margin-bottom: 2rem;
+    text-align: center;
+    color: #fff;
+}
+
+.section {
+    margin: 500px 0;
+    padding: 60px 40px;
+    background: rgb(17, 17, 17);
+    border-radius: 15px;
+    border: 1px solid rgb(255, 255, 255);
+}
+
+.section h2 {
+    font-size: 2rem;
+    margin-bottom: 1rem;
+    color: #fff;
+}
+
+.section p {
+    font-size: 1.1rem;
+    line-height: 1.6;
+    color: #ccc;
+    margin-bottom: 1rem;
+}
+
+.highlight {
+    color: #00ff88;
+    font-weight: bold;
+}
+
+.indicator {
+    background: #00ff88;
+    height: 5px;
+    position: absolute;
+    top: 50%;
+    width: 100%;
+}

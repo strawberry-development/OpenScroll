@@ -1,3 +1,7 @@
+/**
+ * Parallax effect
+ * V1.0.0
+ */
 class Parallax {
     constructor(options = {}) {
         this.options = {
